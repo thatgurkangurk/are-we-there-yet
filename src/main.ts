@@ -1,4 +1,4 @@
-import { run, command, string } from "@drizzle-team/brocli";
+import { run, command, string, boolean } from "@drizzle-team/brocli";
 import { getModSlugsFromFile } from "./lib/slugs.ts";
 import ProgressBar from "@deno-library/progress";
 import { ModrinthV2Client } from "@xmcl/modrinth";
@@ -12,6 +12,9 @@ const check = command({
     "mc-version": string().required(),
     loader: string().required().enum("neoforge", "forge", "fabric"),
     out: string().required(),
+    appendPercentage: boolean("append-percentage")
+      .alias("percentage")
+      .default(false),
   },
   handler: async (options) => {
     const modSlugs = await getModSlugsFromFile(options.file);
@@ -31,6 +34,8 @@ const check = command({
 
     const lines: string[] = [];
 
+    let updatedCount = 0;
+
     for (const [index, id] of modSlugs.ids.entries()) {
       await bar.render(index);
 
@@ -43,7 +48,18 @@ const check = command({
         options["mc-version"],
       );
 
+      if (isIt) updatedCount++;
+
       lines.push(`${title} - ${isIt ? "✅" : "❌"}`);
+    }
+
+    if (options.appendPercentage) {
+      const finalPercent = Math.round(
+        (updatedCount / modSlugs.ids.length) * 100,
+      );
+      lines.push(
+        `\ntotal: ${updatedCount}/${modSlugs.ids.length} (${finalPercent}%)`,
+      );
     }
 
     await file.write(new TextEncoder().encode(lines.join("\n") + "\n"));
