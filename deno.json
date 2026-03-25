@@ -1,6 +1,9 @@
 {
   "imports": {
+    "@deno-library/progress": "jsr:@deno-library/progress@^1.5.1",
     "@drizzle-team/brocli": "npm:@drizzle-team/brocli@^0.11.0",
-    "@std/fs": "jsr:@std/fs@^1.0.23"
+    "@std/async": "jsr:@std/async@^1.2.0",
+    "@std/fs": "jsr:@std/fs@^1.0.23",
+    "@xmcl/modrinth": "npm:@xmcl/modrinth@^2.5.0"
   }
 }

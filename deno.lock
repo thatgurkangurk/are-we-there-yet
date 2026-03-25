@@ -1,12 +1,30 @@
 {
   "version": "5",
   "specifiers": {
+    "jsr:@deno-library/progress@^1.5.1": "1.5.1",
+    "jsr:@std/async@^1.2.0": "1.2.0",
+    "jsr:@std/fmt@1.0.3": "1.0.3",
     "jsr:@std/fs@^1.0.23": "1.0.23",
     "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/io@0.225.0": "0.225.0",
     "jsr:@std/path@^1.1.4": "1.1.4",
-    "npm:@drizzle-team/brocli@0.11": "0.11.0"
+    "npm:@drizzle-team/brocli@0.11": "0.11.0",
+    "npm:@xmcl/modrinth@^2.5.0": "2.5.0"
   },
   "jsr": {
+    "@deno-library/progress@1.5.1": {
+      "integrity": "966611826b8bb27baae73ab1c4fa4317cd4edd2abb99750cd6f8488d22d5b121",
+      "dependencies": [
+        "jsr:@std/fmt",
+        "jsr:@std/io"
+      ]
+    },
+    "@std/async@1.2.0": {
+      "integrity": "c059c6f6d95ca7cc012ae8e8d7164d1697113d54b0b679e4372b354b11c2dee5"
+    },
+    "@std/fmt@1.0.3": {
+      "integrity": "97765c16aa32245ff4e2204ecf7d8562496a3cb8592340a80e7e554e0bb9149f"
+    },
     "@std/fs@1.0.23": {
       "integrity": "3ecbae4ce4fee03b180fa710caff36bb5adb66631c46a6460aaad49515565a37",
       "dependencies": [
@@ -16,6 +34,9 @@
     },
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/io@0.225.0": {
+      "integrity": "c1db7c5e5a231629b32d64b9a53139445b2ca640d828c26bf23e1c55f8c079b3"
     },
     "@std/path@1.1.4": {
       "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
@@ -27,12 +48,24 @@
   "npm": {
     "@drizzle-team/brocli@0.11.0": {
       "integrity": "sha512-hD3pekGiPg0WPCCGAZmusBBJsDqGUR66Y452YgQsZOnkdQ7ViEPKuyP4huUGEZQefp8g34RRodXYmJ2TbCH+tg=="
+    },
+    "@xmcl/modrinth@2.5.0": {
+      "integrity": "sha512-OpPpBemZ/yYvphgLVXGV+jESR9n8OceEsMaMvxuFZrIpi9LdYTa2oyVlnZHD7Dte+S+ttD8Y2AUncSJUNFRgNg==",
+      "dependencies": [
+        "undici"
+      ]
+    },
+    "undici@7.2.3": {
+      "integrity": "sha512-2oSLHaDalSt2/O/wHA9M+/ZPAOcU2yrSP/cdBYJ+YxZskiPYDSqHbysLSlD7gq3JMqOoJI5O31RVU3BxX/MnAA=="
     }
   },
   "workspace": {
     "dependencies": [
+      "jsr:@deno-library/progress@^1.5.1",
+      "jsr:@std/async@^1.2.0",
       "jsr:@std/fs@^1.0.23",
-      "npm:@drizzle-team/brocli@0.11"
+      "npm:@drizzle-team/brocli@0.11",
+      "npm:@xmcl/modrinth@^2.5.0"
     ]
   }
 }
