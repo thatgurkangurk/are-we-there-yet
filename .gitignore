@@ -4,3 +4,4 @@ out.txt
 /target
 config.toml
 !.cargo/config.toml
+mod-list.toml
