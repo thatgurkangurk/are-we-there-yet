@@ -1,0 +1,17 @@
+[package]
+name = "are-we-there-yet"
+description = "a simple tool check if your modrinth mods are updated to a specific minecraft version"
+edition = "2024"
+version = "0.1.0"
+
+[profile.dev]
+opt-level = 0
+debug = 1
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
