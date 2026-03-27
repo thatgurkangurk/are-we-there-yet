@@ -45,8 +45,7 @@ impl Commands {
 
                 let ferinth = modrinth::create_ferinth();
 
-                let results =
-                    crate::version::check_mods_status_concurrent(mods, &ferinth, &version).await?;
+                let results = crate::version::are_on_version(&ferinth, mods, &version).await?;
 
                 save_mod_statuses(&results, &out).await?;
 

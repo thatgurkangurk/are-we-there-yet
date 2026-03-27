@@ -1,36 +1,24 @@
 use ferinth::Ferinth;
-use futures::stream::{FuturesUnordered, StreamExt};
 use std::collections::HashMap;
 
 use anyhow::Result;
 
-use crate::modrinth;
-
-pub async fn check_mods_status_concurrent(
-    mods: Vec<String>,
+pub async fn are_on_version(
     ferinth: &Ferinth<()>,
+    mods: Vec<String>,
     version: &str,
 ) -> Result<HashMap<String, bool>> {
-    let mut results = HashMap::new();
+    let mut results: HashMap<String, bool> = HashMap::new();
 
-    // map mods into async futures
-    let futures = mods.into_iter().map(|mc_mod| {
-        let version = version.to_string();
-        async move {
-            let status = modrinth::is_on_version(ferinth, &mc_mod, &version).await;
-            (mc_mod, status)
-        }
-    });
+    let id_slices: Vec<&str> = mods.iter().map(|s| s.as_str()).collect();
 
-    let mut stream = FuturesUnordered::from_iter(futures);
+    let projects = ferinth.project_get_multiple(&id_slices).await?;
 
-    while let Some((mod_name, status)) = stream.next().await {
-        match status {
-            Ok((name, is_on_version)) => {
-                results.insert(name, is_on_version);
-            }
-            Err(e) => eprintln!("error checking {}: {}", mod_name, e),
-        }
+    for project in projects {
+        let name = project.title.clone();
+        let is_on_version = project.game_versions.contains(&version.to_string());
+
+        results.insert(name, is_on_version);
     }
 
     Ok(results)
