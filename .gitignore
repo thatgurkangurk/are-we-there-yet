@@ -1,3 +1,6 @@
 mod-list.txt
 .env
 out.txt
+/target
+config.toml
+!.cargo/config.toml
