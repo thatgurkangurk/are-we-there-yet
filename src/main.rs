@@ -1,7 +1,8 @@
-mod fs;
 mod cli;
-mod update;
+mod fs;
 mod modrinth;
+mod update;
+mod version;
 
 use clap::Parser;
 
