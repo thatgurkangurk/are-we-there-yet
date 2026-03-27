@@ -1,0 +1,157 @@
+name: Build and Release Rust Binaries
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BIN_NAME: are-we-there-yet
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-gnu
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      # ------------------------
+      # Rust Toolchain
+      # ------------------------
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # ------------------------
+      # Rust Cache
+      # ------------------------
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}-fast
+          cache-all-crates: true
+
+      - name: Install cargo-binutils & llvm-tools-preview
+        run: |
+          cargo install -f cargo-binutils
+          rustup component add llvm-tools-preview
+
+
+      # ------------------------
+      # Build (Fast + Parallel)
+      # ------------------------
+      - name: Build
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+
+          cross build --release --target $TARGET
+
+      # ------------------------
+      # Package Binary
+      # ------------------------
+      - name: Prepare Artifact
+        id: prep
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+
+          if [[ "$TARGET" == *windows* ]]; then
+            EXT=".exe"
+          else
+            EXT=""
+          fi
+
+          OUT="${BIN_NAME}-${TARGET}${EXT}"
+
+          cp target/${TARGET}/release/${BIN_NAME}${EXT} $OUT
+
+          echo "out_name=$OUT" >> $GITHUB_OUTPUT
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.prep.outputs.out_name }}
+          path: ${{ steps.prep.outputs.out_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      # ------------------------
+      # Version + Tag Validation
+      # ------------------------
+      - name: Extract Version
+        id: version
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -n1 | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Enforce Version Change
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="v$VERSION"
+
+          git fetch --tags
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag already exists"
+            exit 1
+          fi
+
+      # ------------------------
+      # Changelog
+      # ------------------------
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          PREV=$(git tag --sort=-v:refname | head -n1 || true)
+
+          if [ -z "$PREV" ]; then
+            LOG=$(git log --pretty=format:"- %s (%h)")
+          else
+            LOG=$(git log "$PREV"..HEAD --pretty=format:"- %s (%h)")
+          fi
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "## Changes" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # ------------------------
+      # Release Publish
+      # ------------------------
+      - name: Create Tag + Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: ttcore-clip-preparer v${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: artifacts/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

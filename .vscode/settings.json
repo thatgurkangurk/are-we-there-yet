@@ -1,5 +1,11 @@
 {
-    "deno.enable": true,
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "denoland.vscode-deno"
+  "deno.enable": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  },
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml"
+  }
 }
