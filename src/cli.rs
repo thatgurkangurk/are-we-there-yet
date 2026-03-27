@@ -22,6 +22,9 @@ pub enum Commands {
 
         #[arg(long)]
         out: PathBuf,
+
+        #[arg(long, action = clap::ArgAction::SetTrue)]
+        percentage: bool,
     },
     Update,
 }
@@ -38,6 +41,7 @@ impl Commands {
                 mod_list,
                 version,
                 out,
+                percentage,
             } => {
                 let config = crate::fs::read_toml_file(mod_list).await?;
 
@@ -47,7 +51,7 @@ impl Commands {
 
                 let results = crate::version::are_on_version(&ferinth, mods, &version).await?;
 
-                save_mod_statuses(&results, &out).await?;
+                save_mod_statuses(&results, &out, percentage).await?;
 
                 println!("done! check {}", &out.display())
             }

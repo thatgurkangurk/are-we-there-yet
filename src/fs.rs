@@ -37,17 +37,37 @@ pub async fn read_toml_file(path: PathBuf) -> Result<Config> {
     Ok(config)
 }
 
-pub async fn save_mod_statuses(results: &HashMap<String, bool>, out_path: &PathBuf) -> Result<()> {
+pub async fn save_mod_statuses(
+    results: &HashMap<String, bool>,
+    out_path: &PathBuf,
+    percentage: bool,
+) -> Result<()> {
     let mut file = File::create(out_path).await?;
 
     let mut mods: Vec<_> = results.keys().collect();
     mods.sort();
 
-    for mod_name in mods {
-        let status = results.get(mod_name).unwrap_or(&false);
+    let mut enabled_count = 0;
+
+    for mod_name in &mods {
+        let status = results.get(*mod_name).unwrap_or(&false);
+        if *status {
+            enabled_count += 1;
+        }
         let mark = if *status { "✅" } else { "❌" };
         file.write_all(format!("{} - {}\n", mod_name, mark).as_bytes())
             .await?;
+    }
+
+    let total = mods.len();
+    if total > 0 {
+        let total_line = if percentage {
+            let percent = (enabled_count * 100) / total;
+            format!("\ntotal: {}/{} ({}%)\n", enabled_count, total, percent)
+        } else {
+            format!("\ntotal: {}/{}\n", enabled_count, total)
+        };
+        file.write_all(total_line.as_bytes()).await?;
     }
 
     Ok(())
