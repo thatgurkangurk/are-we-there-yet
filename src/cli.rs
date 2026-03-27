@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 use anyhow::{Ok, Result};
 use clap::{Parser, Subcommand};
-use futures::stream::{FuturesUnordered, StreamExt};
-use std::collections::HashMap;
 
 use crate::{fs::save_mod_statuses, modrinth, update};
 
