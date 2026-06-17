@@ -1,6 +1,7 @@
 mod cli;
 mod fs;
 mod modrinth;
+mod packwiz;
 mod update;
 mod version;
 
