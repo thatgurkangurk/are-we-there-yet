@@ -1,10 +1,13 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::PathBuf};
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use clap::{Parser, Subcommand};
-use reqwest::Url;
+use futures::StreamExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use reqwest::Client;
+use url::Url;
 
-use crate::{fs::save_mod_statuses, modrinth, update};
+use crate::{fs::save_mod_statuses, modrinth, packwiz, update};
 
 #[derive(Debug, Parser)]
 pub struct Cli {
@@ -64,7 +67,59 @@ impl Commands {
                 println!("done! check {}", &out.display())
             }
             Commands::Packwiz { url, version } => {
-                println!("{url}, {version}")
+                let client = Client::new();
+                let pack = packwiz::fetch_pack(&client, &url).await?;
+
+                let (index_url, index) =
+                    packwiz::fetch_index(&client, &url, &pack.index.file).await?;
+
+                let metafile_urls = packwiz::get_metafile_urls(&index_url, &index);
+                let total_files = metafile_urls.len() as u64;
+
+                let pb = ProgressBar::new(total_files);
+                pb.set_style(
+                    ProgressStyle::default_bar()
+                        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+                        .expect("Invalid progress bar template")
+                        .progress_chars("#>-")
+                );
+
+                let mut stream = futures::stream::iter(metafile_urls)
+                    .map(|url| {
+                        let client_clone = client.clone();
+
+                        let filename = url
+                            .path_segments()
+                            .and_then(|segments| segments.last())
+                            .unwrap_or("unknown.toml")
+                            .to_string();
+
+                        tokio::spawn(async move {
+                            let res = packwiz::fetch_modrinth_id(&client_clone, url).await;
+                            (filename, res)
+                        })
+                    })
+                    .buffer_unordered(4);
+
+                let mut modrinth_ids = HashSet::new();
+
+                while let Some(result) = stream.next().await {
+                    if let Ok((filename, fetch_result)) = result {
+                        pb.set_message(format!("reading {}...", filename));
+                        pb.inc(1);
+
+                        if let Ok(Some(id)) = fetch_result {
+                            modrinth_ids.insert(id);
+                        }
+                    }
+                }
+
+                pb.finish_with_message("done!");
+
+                let mut sorted_ids: Vec<String> = modrinth_ids.into_iter().collect();
+                sorted_ids.sort();
+
+                println!("{}", sorted_ids.join(", "));
             }
             Commands::Update => unreachable!(), // already handled
         }
