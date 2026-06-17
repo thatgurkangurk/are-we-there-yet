@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::{Ok, Result};
 use clap::{Parser, Subcommand};
+use reqwest::Url;
 
 use crate::{fs::save_mod_statuses, modrinth, update};
 
@@ -25,6 +26,13 @@ pub enum Commands {
 
         #[arg(long, action = clap::ArgAction::SetTrue)]
         percentage: bool,
+    },
+    Packwiz {
+        #[arg()]
+        url: Url,
+
+        #[arg(long)]
+        version: String,
     },
     Update,
 }
@@ -54,6 +62,9 @@ impl Commands {
                 save_mod_statuses(&results, &out, percentage).await?;
 
                 println!("done! check {}", &out.display())
+            }
+            Commands::Packwiz { url, version } => {
+                println!("{url}, {version}")
             }
             Commands::Update => unreachable!(), // already handled
         }
