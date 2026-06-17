@@ -36,6 +36,12 @@ pub enum Commands {
 
         #[arg(long)]
         version: String,
+
+        #[arg(long)]
+        out: PathBuf,
+
+        #[arg(long, action = clap::ArgAction::SetTrue)]
+        percentage: bool,
     },
     Update,
 }
@@ -66,7 +72,12 @@ impl Commands {
 
                 println!("done! check {}", &out.display())
             }
-            Commands::Packwiz { url, version } => {
+            Commands::Packwiz {
+                url,
+                version,
+                out,
+                percentage,
+            } => {
                 let client = Client::new();
                 let pack = packwiz::fetch_pack(&client, &url).await?;
 
@@ -116,10 +127,18 @@ impl Commands {
 
                 pb.finish_with_message("done!");
 
-                let mut sorted_ids: Vec<String> = modrinth_ids.into_iter().collect();
-                sorted_ids.sort();
+                let ferinth = modrinth::create_ferinth();
 
-                println!("{}", sorted_ids.join(", "));
+                let results = crate::version::are_on_version(
+                    &ferinth,
+                    modrinth_ids.into_iter().collect(),
+                    &version,
+                )
+                .await?;
+
+                save_mod_statuses(&results, &out, percentage).await?;
+
+                println!("done! check {}", &out.display())
             }
             Commands::Update => unreachable!(), // already handled
         }
