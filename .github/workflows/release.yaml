@@ -28,12 +28,16 @@ jobs:
           tool: cross
 
       # ------------------------
-      # Rust Toolchain
+      # Toolchain: mise & Rust
       # ------------------------
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Setup mise
+        uses: jdx/mise-action@v4
         with:
-          targets: ${{ matrix.target }}
+          install: true # Triggers installation from .mise.toml / .tool-versions
+
+      - name: Install Rust Target
+        shell: bash
+        run: rustup target add ${{ matrix.target }}
 
       # ------------------------
       # Rust Cache
@@ -150,7 +154,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          name: ttcore-clip-preparer v${{ steps.version.outputs.version }}
+          name: are-we-there-yet v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
           files: artifacts/**/*
         env:

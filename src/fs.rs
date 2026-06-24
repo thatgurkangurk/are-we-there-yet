@@ -41,12 +41,11 @@ pub async fn save_mod_statuses(
     results: &HashMap<String, bool>,
     out_path: &PathBuf,
     percentage: bool,
-) -> Result<()> {
-    let mut file = File::create(out_path).await?;
-
+) -> Result<bool> {
     let mut mods: Vec<_> = results.keys().collect();
     mods.sort();
 
+    let mut new_content = String::new();
     let mut enabled_count = 0;
 
     for mod_name in &mods {
@@ -55,20 +54,32 @@ pub async fn save_mod_statuses(
             enabled_count += 1;
         }
         let mark = if *status { "✅" } else { "❌" };
-        file.write_all(format!("{} - {}\n", mod_name, mark).as_bytes())
-            .await?;
+        new_content.push_str(&format!("{} - {}\n", mod_name, mark));
     }
 
     let total = mods.len();
     if total > 0 {
-        let total_line = if percentage {
+        if percentage {
             let percent = (enabled_count * 100) / total;
-            format!("\ntotal: {}/{} ({}%)\n", enabled_count, total, percent)
+            new_content.push_str(&format!(
+                "\ntotal: {}/{} ({}%)\n",
+                enabled_count, total, percent
+            ));
         } else {
-            format!("\ntotal: {}/{}\n", enabled_count, total)
-        };
-        file.write_all(total_line.as_bytes()).await?;
+            new_content.push_str(&format!("\ntotal: {}/{}\n", enabled_count, total));
+        }
     }
 
-    Ok(())
+    if out_path.exists() {
+        if let Ok(existing_bytes) = fs::read(out_path).await {
+            if existing_bytes == new_content.as_bytes() {
+                return Ok(false);
+            }
+        }
+    }
+
+    let mut file = File::create(out_path).await?;
+    file.write_all(new_content.as_bytes()).await?;
+
+    Ok(true)
 }

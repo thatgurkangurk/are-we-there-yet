@@ -68,9 +68,13 @@ impl Commands {
 
                 let results = crate::version::are_on_version(&ferinth, mods, &version).await?;
 
-                save_mod_statuses(&results, &out, percentage).await?;
+                let changed = save_mod_statuses(&results, &out, percentage).await?;
 
-                println!("done! check {}", &out.display())
+                println!("done! check {}", &out.display());
+
+                if !changed {
+                    println!("[note] no update since last check")
+                }
             }
             Commands::Packwiz {
                 url,
@@ -136,9 +140,13 @@ impl Commands {
                 )
                 .await?;
 
-                save_mod_statuses(&results, &out, percentage).await?;
+                let changed = save_mod_statuses(&results, &out, percentage).await?;
 
-                println!("done! check {}", &out.display())
+                println!("done! check {}", &out.display());
+
+                if !changed {
+                    println!("[note] no update since last check")
+                }
             }
             Commands::Update => unreachable!(), // already handled
         }
