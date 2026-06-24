@@ -9,23 +9,29 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   BIN_NAME: are-we-there-yet
+  MISE_EXPERIMENTAL: true
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.target }}
+    # Dynamically select the runner OS based on the matrix target
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-gnu
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: cross
+      - uses: actions/checkout@v6
 
       # ------------------------
       # Toolchain: mise & Rust
@@ -48,21 +54,19 @@ jobs:
           key: ${{ matrix.target }}-fast
           cache-all-crates: true
 
-      - name: Install cargo-binutils & llvm-tools-preview
+      - name: Install mold
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
         run: |
-          cargo install -f cargo-binutils
-          rustup component add llvm-tools-preview
-
+          sudo apt install --assume-yes mold
 
       # ------------------------
-      # Build (Fast + Parallel)
+      # Build (Native Cargo)
       # ------------------------
       - name: Build
         shell: bash
         run: |
-          TARGET="${{ matrix.target }}"
-
-          cross build --release --target $TARGET
+          cargo build --release --target ${{ matrix.target }}
 
       # ------------------------
       # Package Binary
@@ -80,9 +84,7 @@ jobs:
           fi
 
           OUT="${BIN_NAME}-${TARGET}${EXT}"
-
           cp target/${TARGET}/release/${BIN_NAME}${EXT} $OUT
-
           echo "out_name=$OUT" >> $GITHUB_OUTPUT
 
       - name: Upload Artifact
@@ -96,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -104,6 +106,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true 
 
       # ------------------------
       # Version + Tag Validation
@@ -122,7 +125,7 @@ jobs:
           git fetch --tags
 
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag already exists"
+            echo "Tag already exists. Please bump your Cargo.toml version."
             exit 1
           fi
 
@@ -156,6 +159,6 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: are-we-there-yet v${{ steps.version.outputs.version }}
           body: ${{ steps.changelog.outputs.changelog }}
-          files: artifacts/**/*
+          files: artifacts/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
