@@ -27,8 +27,11 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: x86_64-pc-windows-gnu
+            ext: ""
+          - target: x86_64-pc-windows-msvc
             os: windows-latest
+            ext: ".exe"
+            legacy_target: x86_64-pc-windows-gnu
 
     steps:
       - uses: actions/checkout@v6
@@ -76,22 +79,30 @@ jobs:
         shell: bash
         run: |
           TARGET="${{ matrix.target }}"
-
-          if [[ "$TARGET" == *windows* ]]; then
-            EXT=".exe"
-          else
-            EXT=""
-          fi
-
+          EXT="${{ matrix.ext }}"
           OUT="${BIN_NAME}-${TARGET}${EXT}"
+          
           cp target/${TARGET}/release/${BIN_NAME}${EXT} $OUT
-          echo "out_name=$OUT" >> $GITHUB_OUTPUT
+          
+          {
+            echo "artifacts_pattern<<EOF"
+            echo "$OUT"
+          } >> $GITHUB_OUTPUT
+          
+          # legacy fallback if defined
+          if [ -n "${{ matrix.legacy_target }}" ]; then
+            LEGACY_OUT="${BIN_NAME}-${{ matrix.legacy_target }}${EXT}"
+            cp $OUT $LEGACY_OUT
+            echo "$LEGACY_OUT" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.prep.outputs.out_name }}
-          path: ${{ steps.prep.outputs.out_name }}
+          name: artifacts-${{ matrix.target }}
+          path: ${{ steps.prep.outputs.artifacts_pattern }}
 
   release:
     needs: build
