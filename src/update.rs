@@ -5,7 +5,9 @@ pub fn update() -> Result<()> {
     let target = self_update::get_target();
 
     let asset_name = match target {
-        "x86_64-pc-windows-gnu" => "are-we-there-yet-x86_64-pc-windows-gnu.exe",
+        "x86_64-pc-windows-msvc" | "x86_64-pc-windows-gnu" => {
+            "are-we-there-yet-x86_64-pc-windows-msvc.exe"
+        }
         "x86_64-unknown-linux-gnu" => "are-we-there-yet-x86_64-unknown-linux-gnu",
         _ => panic!("Unsupported target {}", target),
     };
@@ -14,7 +16,11 @@ pub fn update() -> Result<()> {
         .repo_owner("thatgurkangurk")
         .repo_name("are-we-there-yet")
         .bin_name("are-we-there-yet")
-        .target(target)
+        .target(if target.contains("windows") {
+            "x86_64-pc-windows-msvc"
+        } else {
+            target
+        })
         .bin_name(asset_name)
         .show_download_progress(true)
         .current_version(cargo_crate_version!())
