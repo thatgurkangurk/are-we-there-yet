@@ -2,7 +2,7 @@
 name = "are-we-there-yet"
 description = "a simple tool check if your modrinth mods are updated to a specific minecraft version"
 edition = "2024"
-version = "0.3.1"
+version = "0.3.2"
 
 [profile.dev]
 opt-level = 0
